@@ -1,0 +1,38 @@
+
+# binance hmac
+apikey=
+secretkey=
+
+# yet other secrets
+goldapi_key=
+metalprice_key=
+
+# whom to send the alerts
+email=
+
+# amount to trade
+paxg_amount=0.1
+
+#
+# define pip variable without dot
+#
+
+# e.g. rate 1985.00
+# pip 120
+xaupip=12.00
+xau_pip=1200
+
+# e.g. rate 28300.00
+# pip 180
+btcpip=180.00
+btc_pip=18000
+
+# e.g. rate 0.0895
+# pip 90
+eurpip=0.0090
+eur_pip=90
+
+# TESTING
+#xaupip=9.00
+#xau_pip=900
+

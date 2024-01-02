@@ -1,0 +1,14 @@
+#!/bin/bash
+
+[[ -z $HOME ]] && echo HOME not defined && exit 1
+
+cd $HOME/dev/paxg-arbitrage/
+
+./compare-btc.ksh >> data/btc.txt
+
+sleep 1
+./compare-eur.ksh >> data/eur.txt
+
+sleep 1
+./compare-xau-paxg.ksh >> data/xau-paxg.txt
+
