@@ -2,13 +2,11 @@
 
 _trading bot for handling XAU vs. PAXG drifts_
 
-## intro
+![IMAGE HERE](i/drift1.png)
 
-what it does:
+## warning
 
-1. grabs the rates online
-1. print the price drift between forex vs. crypto pairs for spark-drift
-1. print the price moves as output for spark-moves
+this is not high frequency trading, we simply grab the rates online every 5 minutes to compare forex / metal pairs against their crypto equivalent.
 
 ## requirements
 
