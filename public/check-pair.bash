@@ -4,7 +4,7 @@
 pair=$1
 
 echo
-echo write to $pair.json ...
-curl -s https://api.binance.com/api/v3/exchangeInfo?symbol=$pair | jq && echo done
+echo write to exchangeInfo.$pair.json ...
+curl -s https://api.binance.com/api/v3/exchangeInfo?symbol=$pair | jq > exchangeInfo.$pair.json && echo done
 echo
 

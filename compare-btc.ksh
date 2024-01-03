@@ -8,8 +8,6 @@ export LC_NUMERIC=C
 [[ ! -d $base ]] && echo define base workdir first && exit 1
 [[ -z $email ]] && echo define email first && exit 1
 
-(( debug = 0 ))
-
 date
 
 [[ ! -f $base/drift.conf ]] && echo configure $base/drift.conf first && exit 1
@@ -32,11 +30,13 @@ float diff
 (( diff = btcusd - btcusdt ))
 echo -e difference is \\t\\t\\t $diff
 
-(( diff >= btcpip ))  && echo -e btc/usd $btcusd \\nbtc/usdt $btcusdt \\n$diff \
-	| mail -s "BUY-BTC/USDT:$diff" $email
+# when diff is positive, it means crypto is cheaper
+(( diff >= btcpip ))  && echo -e btc/usd $btcusd \\nbtc/usdt $btcusdt \\n$diff greater than $btcpip \
+	| mail -s "BUY BTC/USDT:$diff" $email
 
-(( diff <= -btcpip )) && echo -e btc/usd $btcusd \\nbtc/usdt $btcusdt \\n$diff \
-	| mail -s "SELL-BTC/USDT:$diff" $email
+# when diff is negative, it means forex/metal is cheaper
+(( diff <= - btcpip )) && echo -e btc/usd $btcusd \\nbtc/usdt $btcusdt \\n$diff lower than - $btcpip\
+	| mail -s "SELL BTC/USDT:$diff" $email
 
 echo
 

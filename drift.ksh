@@ -3,12 +3,12 @@ set -e
 
 (( debug = 1 ))
 
+export LC_NUMERIC=C
+
 . ./driftlib.bash
 . ./drift.conf
 
 [[ ! -d $base ]] && bomb define base workdir
-
-export LC_NUMERIC=C
 
 # https://git.zx2c4.com/spark/plain/spark.c
 [[ ! -x `whence spark` ]] && bomb spark executable not found
@@ -74,40 +74,40 @@ while true; do
 	(( xaulast <= -xaupip )) && color='\033[1;31m' || color='\033[1m'	# crypto overrated
 	(( xau_variability > variability )) && color2='\033[1;32m' || color2='\033[1m'	# SELL action
 	(( xau_variability < -variability )) && color2='\033[1;31m' || color2='\033[1m'	# BUY action
-	echo -e " XAU/USD drift $color$xaulast\033[0m ($color2$xau_variability\033[0m) - high $xauhigh - avg $xauavg - low $xaulow"
-	echo -e " \033[32m$spark_xau_positive\033[0m"
-	echo -e " \033[31m$spark_xau_no_negative\033[0m"
+	echo -e " PAXG/USDT drift $color$xaulast\033[0m ($color2$xau_variability\033[0m) - high $xauhigh - avg $xauavg - low $xaulow"
+	# metal leads - we look at crypto drift
+	echo -e " \033[32m$spark_xau_no_negative\033[0m"
+	echo -e " \033[31m$spark_xau_positive\033[0m"
 	echo
 
 	(( btclast >= btcpip )) && color='\033[1;32m' || color='\033[1m'	# crypto underrated
 	(( btclast <= -btcpip )) && color='\033[1;31m' || color='\033[1m'	# crypto overrated
 	echo -e " BTC/USD drift \033[1m$btclast\033[0m ($btc_variability) - high $btchigh - avg $btcavg - low $btclow"
+	# crypto leads - we look at forex drift
 	echo -e " \033[32m$spark_btc_positive\033[0m"
 	echo -e " \033[31m$spark_btc_no_negative\033[0m"
 	echo
 
 	(( eurlast >= eurpip )) && color='\033[1;32m' || color='\033[1m'	# crypto underrated
 	(( eurlast <= -eurpip )) && color='\033[1;31m' || color='\033[1m'	# crypto overrated
-	echo -e " EUR/USD drift \033[1m$eurlast\033[0m ($eur_variability) - high $eurhigh - avg $euravg - low $eurlow"
-	echo -e " \033[32m$spark_eur_positive\033[0m"
-	echo -e " \033[31m$spark_eur_no_negative\033[0m"
+	echo -e " EUR/USDT drift \033[1m$eurlast\033[0m ($eur_variability) - high $eurhigh - avg $euravg - low $eurlow"
+	# forex leads - we look at crypto drift
+	echo -e " \033[32m$spark_eur_no_negative\033[0m"
+	echo -e " \033[31m$spark_eur_positive\033[0m"
 	echo
 
 	if (( debug > 0 )); then
-		echo DEBUG XAU $xauvalues_positive
-		echo DEBUG XAU $spark_xau_values_positive
+		echo DEBUG PAXG $spark_xau_values_positive
+		echo DEBUG PAXG $spark_xau_values_no_negative
 		echo
 
-		echo DEBUG XAU $xauvalues_no_negative
-		echo DEBUG XAU $spark_xau_values_no_negative
+		echo DEBUG BTC $spark_btc_values_positive
+		echo DEBUG BTC $spark_btc_values_no_negative
 		echo
 
-		#echo DEBUG BTC $spark_btc_values_positive
-		#echo DEBUG BTC $spark_btc_values_no_negative
-		#echo
-		#echo DEBUG EUR $spark_eur_values_positive
-		#echo DEBUG EUR $spark_eur_values_no_negative
-		#echo
+		echo DEBUG EUR $spark_eur_values_positive
+		echo DEBUG EUR $spark_eur_values_no_negative
+		echo
 	fi
 
 	unset spark_xau spark_xau_values

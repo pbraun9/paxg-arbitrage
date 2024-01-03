@@ -55,8 +55,9 @@ _as root_
 _as user_
 
 	cd $HOME/dev/paxg-arbitrage/compare-pairs/
+<!-- terminal issues, doesn't print the bars right
 	screen -S drift
-
+-->
 	ls -lhF data/*.txt
 	./drift.ksh
 

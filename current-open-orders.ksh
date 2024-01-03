@@ -7,8 +7,8 @@ set -e
 
 export LC_NUMERIC=C
 
-. ../driftlib.bash
-. ../drift.conf
+. ./driftlib.bash
+. ./drift.conf
 
 [[ -z $apikey ]]	&& echo define apikey && exit 1
 [[ -z $secretkey ]]	&& echo define secretkey && exit 1

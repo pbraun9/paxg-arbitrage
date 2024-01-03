@@ -67,22 +67,17 @@ typeset -F2 xau_variability
 echo -e difference variability is \\t $xau_variability
 
 # we should only proceed further if xau_variability is the same sign as difference
-# (in case average is opposite sign, we should still be able to handle it, at least we will try)
-if (( xau_variability > 0 && diff > 0 )); then
+#if (( xau_variability > 0 && diff > 0 )); then
+#	echo OK xau_variability and diff are both positive
+#elif (( xau_variability < 0 && diff < 0 )); then
+#	echo OK xau_variability and diff are both negative
+#else
+#	echo NOK xau_variability and diff are of different sign
+#	echo
+#	exit 0
+#fi
 
-	echo OK xau_variability and diff are both positive
-
-elif (( xau_variability < 0 && diff < 0 )); then
-
-	echo OK xau_variability and diff are both negative
-
-else
-
-	echo NOK xau_variability and diff are of different sign
-	echo
-	exit 0
-
-fi
+# in case average is opposite sign, we should still be able to handle it
 
 # in turns, there is another way to define the drift: volatility in percent
 # show how much the current difference variability differs from the current drift
@@ -102,13 +97,17 @@ else
 
 fi
 
-echo volatility is $volatility%
+# single lock - we are only buying or selling at once for arbitrage
+# and we do not care about the trend
 
-# single lock - we are only buying or selling at once
-# so that we do not care about trend for arbitrage
-lock=`$base/auth/current-open-orders.ksh $pair`
-
+# diff avg metal price is higher than crypto, we are buying
 if (( xau_variability > 0 )); then
+
+	if (( paxgusd >= 2008 )); then
+		echo NOK we do not buy >= 2008
+		echo
+		exit 0
+	fi
 
 	# difference variability positive hence substract
 	integer target_profit_sell
@@ -129,28 +128,21 @@ if (( xau_variability > 0 )); then
 		exit 0
 	fi
 
-	if [[ ! -z $lock ]]; then
+	# only t/p order if market order suceeded
+	echo $base/send-order.ksh $pair BUY $paxg_amount MARKET
+	echo $base/send-order.ksh $pair SELL $paxg_amount $target_profit_sell
+	$base/send-order.ksh $pair BUY $paxg_amount MARKET \
+		&& sleep 0.3 \
+		&& $base/send-order.ksh $pair SELL $paxg_amount $target_profit_sell
 
-	        echo CANNOT BUY: ON GOING TRADE
-	        echo "$lock"
-	        echo "$lock" | mail -s "CANNOT BUY: ON-GOING TRADE" $email
+	echo BUY/MARKET @$paxgusd and SELL/LIMIT @$target_profit_sell \
+		| mail -s "TRADE BUY-AND-SELL PAXG/USDT $diff ($xau_variability)" $email
 
-	else
-
-		# only t/p order if market order suceeded
-		$base/auth/send-order.ksh $pair BUY $paxg_amount MARKET >> $base/debug.log \
-			&& sleep 0.3 \
-			&& $base/auth/send-order.ksh $pair SELL $paxg_amount $target_profit_sell >> $base/debug.log
-
-		echo BUY/MARKET @$paxgusd and SELL/LIMIT @$target_profit_sell \
-			| mail -s "TRADE BUY-AND-SELL PAXG/USDT $diff ($xau_variability)" $email
-
-	fi
-
+# diff avg metal price is lower than crypto, we are selling
 elif (( xau_variability < 0 )); then
 
-	if (( paxgusd < 1956 )); then
-		echo NOK we do not sell below or equal to 1956
+	if (( paxgusd <= 1954 )); then
+		echo NOK we do not sell <= 1954
 		echo
 		exit 0
 	fi
@@ -173,23 +165,15 @@ elif (( xau_variability < 0 )); then
 		exit 0
 	fi
 
-	if [[ ! -z $lock ]]; then
+	# only t/p order if market order suceeded
+	echo $base/send-order.ksh $pair SELL $paxg_amount MARKET
+	echo $base/send-order.ksh $pair BUY $paxg_amount $target_profit_buy
+	$base/send-order.ksh $pair SELL $paxg_amount MARKET \
+		&& sleep 0.3 \
+		&& $base/send-order.ksh $pair BUY $paxg_amount $target_profit_buy
 
-	        echo CANNOT SELL: ON GOING TRADE
-		echo "$lock"
-	        echo "$lock" | mail -s "CANNOT SELL: ON-GOING TRADE" $email
-
-	else
-
-		# only t/p order if market order suceeded
-		$base/auth/send-order.ksh $pair SELL $paxg_amount MARKET >> $base/debug.log \
-			&& sleep 0.3 \
-			&& $base/auth/send-order.ksh $pair BUY $paxg_amount $target_profit_buy >> $base/debug.log
-
-		echo SELL/MARKET @$paxgusd and BUY/LIMIT @$target_profit_buy \
-			| mail -s "TRADE SELL-AND-BUY PAXG/USDT $diff ($xau_variability)" $email
-
-	fi
+	echo SELL/MARKET @$paxgusd and BUY/LIMIT @$target_profit_buy \
+		| mail -s "TRADE SELL-AND-BUY PAXG/USDT $diff ($xau_variability)" $email
 
 else
 

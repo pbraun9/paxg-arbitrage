@@ -1,14 +1,12 @@
 #!/bin/ksh
 
+export LC_NUMERIC=C
+
 . ./driftlib.bash
 . ./drift.conf
 
 [[ ! -d $base ]] && echo define base workdir first && exit 1
 [[ -z $email ]] && echo define email first && exit 1
-
-(( debug = 0 ))
-
-#export LC_NUMERIC=C
 
 date
 
@@ -32,11 +30,13 @@ float diff
 (( diff = eurusd - eurusdt ))
 echo -e difference is \\t\\t\\t $diff
 
-(( diff >= eurpip ))  && echo -e eur/usdt $eurusdt \\neur/usd $eurusd \\n$diff \
-	| mail -s "BUY-EUR/USDT:$diff" $email
+# when diff is positive, it means crypto is cheaper
+(( diff >= eurpip ))  && echo -e eur/usdt $eurusdt \\neur/usd $eurusd \\n$diff greater than $eurpip \
+	| mail -s "BUY EUR/USDT:$diff" $email
 
-(( diff <= -eurpip )) && echo -e eur/usdt $eurusdt \\neur/usd $eurusd \\n$diff \
-        | mail -s "SELL-EUR/USDT:$diff" $email
+# when diff is negative, it means forex/metal is cheaper
+(( diff <= - eurpip )) && echo -e eur/usdt $eurusdt \\neur/usd $eurusd \\n$diff lower than - $eurpip \
+        | mail -s "SELL EUR/USDT:$diff" $email
 
 echo
 

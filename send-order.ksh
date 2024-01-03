@@ -1,10 +1,12 @@
 #!/bin/ksh
 set -e
 
+test=1
+
 export LC_NUMERIC=C
 
-. ../driftlib.bash
-. ../drift.conf
+. ./driftlib.bash
+. ./drift.conf
 
 [[ -z $apikey ]]	&& bomb define apikey in drift.conf
 [[ -z $secretkey ]]	&& bomb define secretkey in drift.conf
@@ -29,9 +31,23 @@ else
 fi
 time=`date +%s%3N`
 
+# single lock - we are only buying or selling at once
+# so that we do not care about trend for arbitrage
+
+if [[ -f $base/LOCK ]]; then
+	lock=`cat $base/LOCK`
+	echo CANNOT $action: ON GOING TRADE
+	echo -e "willing to $@\nbut got lock:\n$lock"
+	echo -e "willing to $@\nbut got lock:\n$lock" | mail -s "CANNOT $action: ON-GOING TRADE" $email
+	exit 1
+fi
+
 if [[ $type = MARKET ]]; then
 
-	echo placing an order on pair $pair -- $action $amount MARKET
+	echo preparing an order on pair $pair -- $action $amount MARKET
+
+	(( test == 1 )) && echo test mode enabled - exiting && exit 0
+
 	echo -n signing ...
 	sig=`echo -n "symbol=$pair&\
 side=$action&\
@@ -39,9 +55,20 @@ type=MARKET&\
 quantity=$amount&\
 timestamp=$time" | openssl dgst -sha256 -hmac "$secretkey" | awk '{print $NF}'` && echo done
 
+	echo placing an order on pair $pair -- $action $amount MARKET
+	curl -sH "X-MBX-APIKEY: $apikey" -X POST 'https://api.binance.com/api/v3/order' -d "symbol=$pair&\
+side=$action&\
+type=MARKET&\
+quantity=$amount&\
+timestamp=$time&\
+signature=$sig" && echo done && echo $@ > $base/LOCK
+
 else
 
-	echo placing an order on pair $pair -- $action $amount LIMIT @$rate
+	echo preparing an order on pair $pair -- $action $amount LIMIT @$rate
+
+	(( test == 1 )) && echo test mode enabled - exiting && exit 0
+
 	echo -n signing ...
 	sig=`echo -n "symbol=$pair&\
 side=$action&\
@@ -50,20 +77,6 @@ timeInForce=GTC&\
 quantity=$amount&\
 price=$rate&\
 timestamp=$time" | openssl dgst -sha256 -hmac "$secretkey" | awk '{print $NF}'` && echo done
-
-fi
-
-if [[ $type = MARKET ]]; then
-
-	echo placing an order on pair $pair -- $action $amount MARKET
-	curl -sH "X-MBX-APIKEY: $apikey" -X POST 'https://api.binance.com/api/v3/order' -d "symbol=$pair&\
-side=$action&\
-type=MARKET&\
-quantity=$amount&\
-timestamp=$time&\
-signature=$sig" && echo done
-
-else
 
 	echo placing an order on pair $pair -- $action $amount LIMIT $rate
 	curl -sH "X-MBX-APIKEY: $apikey" -X POST 'https://api.binance.com/api/v3/order' -d "symbol=$pair&\
@@ -73,7 +86,7 @@ timeInForce=GTC&\
 quantity=$amount&\
 price=$rate&\
 timestamp=$time&\
-signature=$sig" && echo done
+signature=$sig" && echo done && echo $@ > $base/LOCK
 
 fi
 
