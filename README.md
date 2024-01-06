@@ -2,7 +2,7 @@
 
 _trading bot for handling XAU vs. PAXG drifts_
 
-![IMAGE HERE](i/drift1.png)
+![IMAGE HERE](i/drift2.png)
 
 ## warning
 
