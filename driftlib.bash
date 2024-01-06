@@ -7,7 +7,7 @@ function bomb {
 }
 
 function prep_btc {
-        btcvalues=`grep '^difference is' $base/data/btc.txt | awk '{print $NF}' | tail -100`
+        btcvalues=`grep '^drift is' $base/data/btc.txt | awk '{print $NF}' | tail -100`
 
         (( btclast = `echo "$btcvalues" | tail -1` ))
         (( btchigh = `echo "$btcvalues" | sort -n | tail -1` ))
@@ -26,7 +26,7 @@ function prep_btc {
 }
 
 function prep_eur {
-        eurvalues=`grep '^difference is' $base/data/eur.txt | awk '{print $NF}' | tail -100`
+        eurvalues=`grep '^drift is' $base/data/eur.txt | awk '{print $NF}' | tail -100`
 
         (( eurlast = `echo "$eurvalues" | tail -1` ))
         (( eurhigh = `echo "$eurvalues" | sort -n | tail -1` ))
@@ -44,22 +44,25 @@ function prep_eur {
         (( eur_variability = eurlast - euravg ))
 }
 
-function prep_xau {
-        xauvalues=`grep '^difference is' $base/data/xau-paxg.txt | awk '{print $NF}' | tail -100`
+function prep_paxg {
+        paxgvalues=`grep '^drift is' $base/data/paxg.txt | awk '{print $NF}' | tail -100`
 
-        (( xaulast = `echo "$xauvalues" | tail -1` ))
-        (( xauhigh = `echo "$xauvalues" | sort -n | tail -1` ))
-        (( xaulow =  `echo "$xauvalues" | sort -n | head -1` ))
+	[[ -z $paxgvalues ]] && bomb unable to define paxgvalues
+	(( `echo "$paxgvalues" | wc -l` <= 5 )) && echo -e not enough data just yet\\n && exit 0
 
-        xauvalues_positive=`echo "$xauvalues" | sed -r 's/^-.*/0/'`
-        xauvalues_no_negative=`echo "$xauvalues" | sed -r 's/^[^-].*/0/' | sed 's/-//g'`
+        (( paxglast = `echo "$paxgvalues" | tail -1` ))
+        (( paxghigh = `echo "$paxgvalues" | sort -n | tail -1` ))
+        (( paxglow =  `echo "$paxgvalues" | sort -n | head -1` ))
 
-        tmp=`echo "$xauvalues" | sed 's/$/ +/'`
+        paxgvalues_positive=`echo "$paxgvalues" | sed -r 's/^-.*/0/'`
+        paxgvalues_no_negative=`echo "$paxgvalues" | sed -r 's/^[^-].*/0/' | sed 's/-//g'`
+
+        tmp=`echo "$paxgvalues" | sed 's/$/ +/'`
         tmp2=`echo $tmp | sed 's/ +$//'`
         lines=`echo "$tmp" | wc -l`
-        (( xauavg = ( $tmp2 ) / lines ))
+        (( paxgavg = ( $tmp2 ) / lines ))
         unset tmp tmp2 lines
 
-        (( xau_variability = xaulast - xauavg ))
+        (( paxg_variability = paxglast - paxgavg ))
 }
 

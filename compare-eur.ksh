@@ -26,17 +26,19 @@ eurusdt=`lynx -cookies -dump https://www.google.com/finance/quote/EUR-USDT \
 [[ -z $eurusdt ]] && echo -e could not determine eurusdt \\n && exit 1
 echo -e eur/usdt is \\t\\t\\t $eurusdt
 
+# forex is leading, crypto is following
+# therefore we care about eur/usdt drift (substract eur/usd from eur/usdt)
 float diff
-(( diff = eurusd - eurusdt ))
-echo -e difference is \\t\\t\\t $diff
+(( diff = eurusdt - eurusd ))
+echo -e drift is \\t\\t\\t $diff
 
-# when diff is positive, it means crypto is cheaper
-(( diff >= eurpip ))  && echo -e eur/usdt $eurusdt \\neur/usd $eurusd \\n$diff greater than $eurpip \
-	| mail -s "BUY EUR/USDT:$diff" $email
+# crypto drift high, sell crypto
+(( diff >= eurpip ))  && echo -e eur/usdt $eurusdt \\neur/usd $eurusd \\n$diff \\ntrigger $eurpip \
+	| mail -s "SELL EUR/USDT ($diff)" $email
 
-# when diff is negative, it means forex/metal is cheaper
-(( diff <= - eurpip )) && echo -e eur/usdt $eurusdt \\neur/usd $eurusd \\n$diff lower than - $eurpip \
-        | mail -s "SELL EUR/USDT:$diff" $email
+# crypto drift low, buy crypto
+(( diff <= -eurpip )) && echo -e eur/usdt $eurusdt \\neur/usd $eurusd \\n$diff \\ntrigger -$eurpip \
+        | mail -s "BUY EUR/USDT ($diff)" $email
 
 echo
 

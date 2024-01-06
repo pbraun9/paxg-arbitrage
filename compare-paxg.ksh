@@ -1,6 +1,8 @@
 #!/bin/ksh
 set -e
 
+export LC_NUMERIC=C
+
 . ./driftlib.bash
 . ./drift.conf
 
@@ -10,8 +12,6 @@ set -e
 [[ -z $paxg_amount ]]	&& bomb define paxg_amount in drift.conf
 
 [[ ! -x `whence jq` ]] && bomb install jq first
-
-export LC_NUMERIC=C
 
 # this script is XAU vs. PAXG specific
 pair=PAXGUSDT
@@ -49,30 +49,32 @@ paxgusd=`curl -s "https://api.binance.com/api/v3/ticker/price?symbol=$pair" | jq
 (( ! paxgusd > 0 )) && bomb something went wrong while grabbing paxgusd: should be a number
 echo -e "paxg/usd is \t\t\t $paxgusd"
 
+# XAU is leading, PAXG is following
+# therefore we care about PAXG drifts (substract xau from paxg)
 typeset -F2 diff
-(( diff = xauusd - paxgusd ))
-echo -e "difference is \t\t\t $diff"
+(( diff = paxgusd - xauusd ))
+echo -e drift is \\t\\t\\t $diff
 
-[[ ! -f $base/data/xau-paxg.txt ]] && bomb you need to redirect stdout to $base/data/xau-paxg.txt
+[[ ! -f $base/data/paxg.txt ]] && bomb you need to redirect stdout to $base/data/paxg.txt
 
-prep_xau
+prep_paxg
 
-[[ -z $xauavg ]] && bomb could not determine xauavg
-[[ -z $xau_variability ]] && bomb could not determine xau_variability
+[[ -z $paxgavg ]] && bomb could not determine paxgavg
+[[ -z $paxg_variability ]] && bomb could not determine paxg_variability
 
-typeset -F2 xauavg
-echo -e "difference average is \t\t $xauavg"
+typeset -F2 paxgavg
+echo -e "drift average is \t\t $paxgavg"
 
-typeset -F2 xau_variability
-echo -e difference variability is \\t $xau_variability
+typeset -F2 paxg_variability
+echo -e drift variability is \\t\\t $paxg_variability
 
-# we should only proceed further if xau_variability is the same sign as difference
-#if (( xau_variability > 0 && diff > 0 )); then
-#	echo OK xau_variability and diff are both positive
-#elif (( xau_variability < 0 && diff < 0 )); then
-#	echo OK xau_variability and diff are both negative
+# we should only proceed further if paxg_variability is the same sign as drift
+#if (( paxg_variability > 0 && diff > 0 )); then
+#	echo OK paxg_variability and diff are both positive
+#elif (( paxg_variability < 0 && diff < 0 )); then
+#	echo OK paxg_variability and diff are both negative
 #else
-#	echo NOK xau_variability and diff are of different sign
+#	echo NOK paxg_variability and diff are of different sign
 #	echo
 #	exit 0
 #fi
@@ -80,38 +82,45 @@ echo -e difference variability is \\t $xau_variability
 # in case average is opposite sign, we should still be able to handle it
 
 # in turns, there is another way to define the drift: volatility in percent
-# show how much the current difference variability differs from the current drift
-# we are not comparing against the drift average xauavg since that one can be zero (and it would be fine)
+# show how much the current drift variability differs from the current drift
+# we are not comparing against the drift average paxgavg since that one can be zero (and it would be fine)
 typeset -F2 volatility
-(( volatility = xau_variability * 100 / diff ))
 
-if (( volatility > 22.5 )); then
-
-	echo OK volatility $volatility% higher or equal to 22.5%
-
+if (( paxg_variability > 0 && diff > 0 )); then
+	#echo OK paxg_variability and drift are both positive
+	#(( volatility = paxg_variability * 100 / diff ))
+	(( volatility = paxg_variability * 100 / paxgavg ))
+elif (( paxg_variability < 0 && diff < 0 )); then
+	#echo OK paxg_variability and drift are both negative
+	#(( volatility = paxg_variability * 100 / diff ))
+	(( volatility = paxg_variability * 100 / paxgavg ))
 else
+	echo WARN paxg_variability and drift are of different sign
+	#(( volatility = -paxg_variability * 100 / diff ))
+	(( volatility = -paxg_variability * 100 / paxgavg ))
+fi
 
-	echo NOK volatility $volatility% lower than 22.5%
+echo -e drift volatility is \\t\\t$volatility
+
+if (( volatility < volatility_trigger )); then
+	echo NOK volatility $volatility% lower than $volatility_trigger%
 	echo
 	exit 0
 
 fi
 
-# single lock - we are only buying or selling at once for arbitrage
-# and we do not care about the trend
+# actual drift is negative meaning we need to buy
+if (( paxg_variability < 0 )); then
 
-# diff avg metal price is higher than crypto, we are buying
-if (( xau_variability > 0 )); then
-
-	if (( paxgusd >= 2008 )); then
-		echo NOK we do not buy >= 2008
+	if (( paxgusd > paxg_max )); then
+		echo NOK we do not buy above $paxg_max
 		echo
 		exit 0
 	fi
 
-	# difference variability positive hence substract
+	# drift variability positive hence substract
 	integer target_profit_sell
-	(( target_profit_sell = paxgusd - xau_variability * 1.618 ))
+	(( target_profit_sell = paxgusd - paxg_variability * 1.618 ))
 	[[ -z $target_profit_sell ]] && bomb could not define target_profit_sell
 	echo target_profit_sell is $target_profit_sell
 
@@ -128,6 +137,9 @@ if (( xau_variability > 0 )); then
 		exit 0
 	fi
 
+	echo BUY/MARKET @$paxgusd and SELL/LIMIT @$target_profit_sell \
+		| mail -s "buy-n-sell PAXG/USDT $paxg_variability (drift $drift)" $email
+
 	# only t/p order if market order suceeded
 	echo $base/send-order.ksh $pair BUY $paxg_amount MARKET
 	echo $base/send-order.ksh $pair SELL $paxg_amount $target_profit_sell
@@ -135,21 +147,18 @@ if (( xau_variability > 0 )); then
 		&& sleep 0.3 \
 		&& $base/send-order.ksh $pair SELL $paxg_amount $target_profit_sell
 
-	echo BUY/MARKET @$paxgusd and SELL/LIMIT @$target_profit_sell \
-		| mail -s "TRADE BUY-AND-SELL PAXG/USDT $diff ($xau_variability)" $email
+# actual drift is positive meaning we need to sell
+elif (( paxg_variability > 0 )); then
 
-# diff avg metal price is lower than crypto, we are selling
-elif (( xau_variability < 0 )); then
-
-	if (( paxgusd <= 1954 )); then
-		echo NOK we do not sell <= 1954
+	if (( paxgusd <= paxg_min )); then
+		echo NOK we do not sell at $paxg_min and below
 		echo
 		exit 0
 	fi
 
-	# difference variability negative hence addition
+	# drift variability negative hence addition
 	integer target_profit_buy
-	(( target_profit_buy = paxgusd + xau_variability * 1.618 ))
+	(( target_profit_buy = paxgusd + paxg_variability * 1.618 ))
 	[[ -z $target_profit_buy ]] && bomb could not define target_profit_buy
 	echo target_profit_buy is $target_profit_buy
 
@@ -165,6 +174,9 @@ elif (( xau_variability < 0 )); then
 		exit 0
 	fi
 
+	echo SELL/MARKET @$paxgusd and BUY/LIMIT @$target_profit_buy \
+		| mail -s "sell-n-buy PAXG/USDT $paxg_variability (drift $drift)" $email
+
 	# only t/p order if market order suceeded
 	echo $base/send-order.ksh $pair SELL $paxg_amount MARKET
 	echo $base/send-order.ksh $pair BUY $paxg_amount $target_profit_buy
@@ -172,12 +184,9 @@ elif (( xau_variability < 0 )); then
 		&& sleep 0.3 \
 		&& $base/send-order.ksh $pair BUY $paxg_amount $target_profit_buy
 
-	echo SELL/MARKET @$paxgusd and BUY/LIMIT @$target_profit_buy \
-		| mail -s "TRADE SELL-AND-BUY PAXG/USDT $diff ($xau_variability)" $email
-
 else
 
-	bomb xau_variability cannot be zero because program should have exited while evaluating volatility
+	bomb paxg_variability cannot be zero because program should have exited while evaluating volatility
 
 fi
 

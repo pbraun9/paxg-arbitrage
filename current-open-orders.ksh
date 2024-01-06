@@ -31,5 +31,5 @@ timestamp=$time" | openssl dgst -sha256 -hmac "$secretkey" | awk '{print $NF}'`
 # this one goes GET
 curl -sH "X-MBX-APIKEY: $apikey" "https://api4.binance.com/api/v3/openOrders?symbol=$pair&\
 timestamp=$time&\
-signature=$sig" | jq -r '.[] | .clientOrderId + "," + .side + "," + .price' 2>/dev/null
+signature=$sig" | jq -r '.[] | .clientOrderId + "," + .side + "," + .origQty + "," + .price'
 

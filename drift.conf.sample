@@ -1,17 +1,32 @@
 
+base=$HOME/dev/paxg-arbitrage
+
 # binance hmac
 apikey=
+
+# binance rsa
 secretkey=
 
-# yet other secrets
+# (optional) yet other secrets
 goldapi_key=
 metalprice_key=
 
 # whom to send the alerts
 email=
 
-# amount to trade
-paxg_amount=0.1
+# amount to trade (multiplies by paxg_trades)
+paxg_amount=0.01
+
+# how many micro-trades are we willing to sustain
+# max amount of cumulated micro-trades in both direction
+paxg_trades=10
+#paxg_trades=20
+
+# take action only if volatility reaches that percentage
+# e.g. 25 be very aggressive (but then the t/p should be lowered)
+# e.g. 75 mostly care about the tails and spikes
+# e.g. 100+ care only about big tails and spikes
+volatility_trigger=55
 
 #
 # define pip variable without dot
@@ -19,13 +34,13 @@ paxg_amount=0.1
 
 # e.g. rate 1985.00
 # pip 120
-xaupip=12.00
-xau_pip=1200
+paxgpip=12.00
+paxg_pip=1200
 
 # e.g. rate 28300.00
-# pip 180
-btcpip=180.00
-btc_pip=18000
+# pip 580
+btcpip=580
+btc_pip=58000
 
 # e.g. rate 0.0895
 # pip 90
@@ -33,6 +48,10 @@ eurpip=0.0090
 eur_pip=90
 
 # TESTING
-#xaupip=9.00
-#xau_pip=900
+#paxgpip=9.00
+#paxg_pip=900
+
+# the range you allow the bot to resp. buy and sell
+paxg_max=2034
+paxg_min=1954
 

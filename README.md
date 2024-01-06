@@ -29,6 +29,15 @@ yet the script itself reads values from that output.
 
 	...
 
+## variables
+
+e.g. for PAXG vs. XAU, we consider XAU to be leading and PAXG to be following
+
+- hence the "drift" concerns PAXG: positive if PAXG lives above XAU and negative if PAXG lives below XAU
+- the "drift average" is the average of the last 100 units (one unit is 5 minutes according to the crontab setup below)
+- the "drift variability" (actual current drift) is how much the drift differs from its 100 units average
+- the "drift volatility" is how powerful the drift variability is compared to the drift average, in percent
+
 ## usage
 
 ### test run

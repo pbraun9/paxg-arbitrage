@@ -1,7 +1,7 @@
 #!/bin/ksh
 set -e
 
-test=1
+(( dummy = 0 ))
 
 export LC_NUMERIC=C
 
@@ -31,14 +31,12 @@ else
 fi
 time=`date +%s%3N`
 
-# single lock - we are only buying or selling at once
-# so that we do not care about trend for arbitrage
+existing_trades=`$base/current-open-orders.ksh PAXGUSDT | grep -v ^web_`
 
-if [[ -f $base/LOCK ]]; then
-	lock=`cat $base/LOCK`
-	echo CANNOT $action: ON GOING TRADE
-	echo -e "willing to $@\nbut got lock:\n$lock"
-	echo -e "willing to $@\nbut got lock:\n$lock" | mail -s "CANNOT $action: ON-GOING TRADE" $email
+if (( `echo "$existing_trades" | wc -l` > paxg_trades )); then
+	echo cannot $action: too many pending trades
+	echo "$existing_trades"
+	echo "$existing_trades" | mail -s "cannot $action: too many pending trades" $email
 	exit 1
 fi
 
@@ -46,7 +44,7 @@ if [[ $type = MARKET ]]; then
 
 	echo preparing an order on pair $pair -- $action $amount MARKET
 
-	(( test == 1 )) && echo test mode enabled - exiting && exit 0
+	(( dummy == 1 )) && echo dummy mode enabled - exiting && exit 0
 
 	echo -n signing ...
 	sig=`echo -n "symbol=$pair&\
@@ -61,13 +59,13 @@ side=$action&\
 type=MARKET&\
 quantity=$amount&\
 timestamp=$time&\
-signature=$sig" && echo done && echo $@ > $base/LOCK
+signature=$sig" && echo done
 
 else
 
 	echo preparing an order on pair $pair -- $action $amount LIMIT @$rate
 
-	(( test == 1 )) && echo test mode enabled - exiting && exit 0
+	(( dummy == 1 )) && echo dummy mode enabled - exiting && exit 0
 
 	echo -n signing ...
 	sig=`echo -n "symbol=$pair&\
@@ -86,7 +84,7 @@ timeInForce=GTC&\
 quantity=$amount&\
 price=$rate&\
 timestamp=$time&\
-signature=$sig" && echo done && echo $@ > $base/LOCK
+signature=$sig" && echo done
 
 fi
 
